@@ -1,8 +1,3 @@
-
-=======
-from django.shortcuts import render
-
-# Create your views here.
 from rest_framework import viewsets, mixins, filters
 
 from reviews.models import Category, Genre, Title
