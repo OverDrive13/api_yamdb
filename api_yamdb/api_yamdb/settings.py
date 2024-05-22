@@ -19,10 +19,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'reviews.apps.ReviewsConfig',
     'api.apps.ApiConfig',
+    'reviews.apps.ReviewsConfig',
     'rest_framework_simplejwt',
-    'rest_framework'
+    'rest_framework',
+    'reviews.apps.ReviewsConfig'
 ]
 
 MIDDLEWARE = [
@@ -85,7 +86,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 
-LANGUAGE_CODE = 'ru-Ru'
+LANGUAGE_CODE = 'ru-RU'
+
 
 TIME_ZONE = 'UTC'
 

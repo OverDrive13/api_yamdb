@@ -1,3 +1,4 @@
+
 from django.db import models
 
 MAX_LENGTH_NAME = 256
