@@ -138,8 +138,7 @@ class RelatedName():
 
 class Review(models.Model):
     text = models.TextField('Текст отзыва')
-    author = models.IntegerField()
-    # author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
     score = models.IntegerField('Оценка', choices=SCORES)
     pub_date = models.DateTimeField('Дата добавления', auto_now_add=True)
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
@@ -153,8 +152,7 @@ class Review(models.Model):
 
 class Comment(models.Model):
     text = models.TextField('Текст комментария')
-    author = models.IntegerField()
-    # author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
     pub_date = models.DateTimeField('Дата добавления', auto_now_add=True)
     review = models.ForeignKey(Review, on_delete=models.CASCADE)
 

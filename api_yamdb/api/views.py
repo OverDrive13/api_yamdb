@@ -1,13 +1,16 @@
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from rest_framework import viewsets, mixins, filters, status
+from rest_framework import viewsets, mixins, filters, permissions, status
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
-from .permissions import IsAuthenticatedOrOwnerReadOnly, IsAdmin
+
+from .permissions import (
+    IsAuthenticatedOrOwnerReadOnly, IsAdmin, IsAdminModerator
+)
 from reviews.models import (Category, Comment, Genre, Review,
                             Title, User, UserRole)
 from .serializers import (
@@ -24,6 +27,9 @@ class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly, IsAdmin
+    )
 
 
 class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -33,12 +39,18 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly, IsAdmin
+    )
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Viewset для модели Title."""
     queryset = Title.objects.prefetch_related('reviews').all()
     serializer_class = TitleSerializer
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly, IsAdmin
+    )
 
     def perform_create(self, serializer):
         serializer.save(category=self.request.category,
@@ -51,6 +63,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
+    permission_classes = (
+        IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
+        IsAdmin, IsAdminModerator
+    )
 
     def get_title(self):
         return get_object_or_404(Title, id=self.kwargs['title_id'])
@@ -68,6 +84,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+    permission_classes = (
+        IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
+        IsAdmin, IsAdminModerator
+    )
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
