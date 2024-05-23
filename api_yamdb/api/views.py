@@ -1,11 +1,15 @@
 from django.shortcuts import get_object_or_404, render
 
-from rest_framework import viewsets, mixins, filters
-
-from reviews.models import Category, Comment, Genre, Review, Title
+from rest_framework import viewsets, mixins, filters, status
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view, permission_classes, action
+from .permissions import IsAuthenticatedOrOwnerReadOnly, IsAdmin
+from reviews.models import (Category, Comment, Genre, Review,
+                            Title, User, UserRole)
 from api.serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
-    ReviewSerializer, TitleSerializer
+    ReviewSerializer, TitleSerializer, UserSerializer
 )
 
 
@@ -74,4 +78,44 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(
             author=self.request.user,
             review=self.get_review()
+        )
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('=username',)
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAdmin]
+    lookup_field = 'username'
+
+    @action(methods=['get', 'patch'], detail=False,
+            permission_classes=(IsAuthenticatedOrOwnerReadOnly,))
+    def me(self, request):
+        if request.method == 'GET':
+            user = self.request.user
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status.HTTP_200_OK)
+
+        if request.method == 'PATCH':
+            user = get_object_or_404(User, id=request.user.id)
+            fixed_data = self.request.data.copy()
+            if ('role' in self.request.data
+                    and user.role == UserRole.USER.value):
+                fixed_data['role'] = UserRole.USER.value
+            serializer = UserSerializer(
+                user,
+                data=fixed_data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                data=serializer.data,
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            data=request.data,
+            status=status.HTTP_400_BAD_REQUEST
         )
