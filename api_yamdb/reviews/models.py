@@ -116,7 +116,7 @@ class Title(models.Model):
                             verbose_name='Жанр')
     year = models.IntegerField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    genre = models.ManyToManyField(Genre)
+    genre = models.ManyToManyField(Genre, through='GenreTitle')
     description = models.TextField(
         blank=True,
         null=True,
@@ -129,6 +129,14 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class GenreTitle(models.Model):
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.genre} {self.title}'
 
 
 class RelatedName():

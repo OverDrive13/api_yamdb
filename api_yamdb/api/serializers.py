@@ -1,36 +1,51 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from reviews.models import (Category, Comment, Genre, Review,
+from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             SCORES, Title, User, UserRole)
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ('id', 'name', 'slug')
+        fields = ('name', 'slug')
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
-        fields = ('id', 'name', 'slug')
+        fields = ('name', 'slug')
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer()
+    genre = GenreSerializer(many=True, required=False)
     rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = (
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+        )
 
     def get_rating(self, obj):
         scores = []
         for review in obj.reviews.all():
             scores.append(review.score)
-        return round(sum(scores) / len(scores))
+        if scores:
+            return round(sum(scores) / len(scores))
+        return 0
+
+    def create(self, validated_data):
+        if 'genre' not in self.initial_data:
+            title = Title.objects.create(**validated_data)
+            return title
+        genres = validated_data.pop('genre')
+        title = Title.objects.create(**validated_data)
+        for genre in genres:
+            current_genre, status = Genre.objects.get_or_create(**genre)
+            GenreTitle.objects.create(genre=current_genre, title=title)
+        return title
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -43,7 +58,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
         read_only_fields = ('title',)
         validators = [
             UniqueTogetherValidator(
@@ -62,7 +77,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'text', 'author', 'pub_date')
+        fields = ('id', 'text', 'author', 'pub_date', 'review')
         read_only_fields = ('review',)
 
 
