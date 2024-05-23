@@ -1,15 +1,19 @@
 from django.shortcuts import get_object_or_404, render
-
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from rest_framework import viewsets, mixins, filters, status
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import AccessToken
 from .permissions import IsAuthenticatedOrOwnerReadOnly, IsAdmin
 from reviews.models import (Category, Comment, Genre, Review,
                             Title, User, UserRole)
-from api.serializers import (
+from .serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
-    ReviewSerializer, TitleSerializer, UserSerializer
+    ReviewSerializer, TitleSerializer, UserSerializer, GetCodeSerializer,
+    GetTokenSerializer
 )
 
 
@@ -19,7 +23,7 @@ class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (filters.SearchFilter,)
 
 
 class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -28,7 +32,7 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (filters.SearchFilter,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -119,3 +123,49 @@ class UserViewSet(viewsets.ModelViewSet):
             data=request.data,
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def get_confirmation_code(request):
+    """Получить код подтверждения на указанный email"""
+    serializer = GetCodeSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data.get('email')
+    username = serializer.validated_data.get('username')
+    try:
+        user, exist = User.objects.get_or_create(
+            username=username,
+            email=email,
+            is_active=False
+        )
+    except Exception:
+        return Response(request.data,
+                        status=status.HTTP_400_BAD_REQUEST)
+    confirmation_code = default_token_generator.make_token(user)
+    User.objects.filter(username=username).update(
+        confirmation_code=confirmation_code
+    )
+    subject = 'Регистрация на YAMDB'
+    message = f'Код подтверждения: {confirmation_code}'
+    send_mail(subject, message, 'YAMDB', [email])
+    return Response(
+        request.data,
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def get_token(request):
+    """Получить токен для работы с API по коду подтверждения"""
+    serializer = GetTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    username = serializer.validated_data.get('username')
+    confirmation_code = serializer.validated_data.get('confirmation_code')
+    user = get_object_or_404(User, username=username)
+    if confirmation_code == user.confirmation_code:
+        token = AccessToken.for_user(user)
+        return Response({'token': f'{token}'}, status=status.HTTP_200_OK)
+    return Response({'confirmation_code': 'Неверный код подтверждения'},
+                    status=status.HTTP_400_BAD_REQUEST)
