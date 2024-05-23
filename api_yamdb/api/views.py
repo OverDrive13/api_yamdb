@@ -46,7 +46,7 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Viewset для модели Title."""
-    queryset = Title.objects.prefetch_related('reviews').all()
+    queryset = Title.objects.all()
     serializer_class = TitleSerializer
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAdmin
