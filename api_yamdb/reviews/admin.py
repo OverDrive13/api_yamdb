@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Genre, Title, User, Review, Comment
+from .models import Category, Comment, Genre, Review, Title, User
 
 admin.site.site_header = 'Панель администратора'
 admin.site.site_title = 'Панель администратора'
@@ -20,7 +20,7 @@ class TitleAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'year')
     list_filter = ('year', 'genre', 'category')
     search_fields = ('name', 'description')
-    empty_value_display = '-ничего нет-'
+    empty_value_display = 'Ничего нет'
 
 
 class UserAdmin(admin.ModelAdmin):
