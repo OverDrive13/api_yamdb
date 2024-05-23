@@ -11,10 +11,10 @@ cd api_yamdb
 ```
 
 ### Создать и активировать виртуальное окружение:
-```sh
+
 python3 -m venv env
 source env/bin/activate
-```
+
 ###  Установить зависимости из файла requirements.txt:
 ```sh
 python3 -m pip install --upgrade pip
@@ -71,7 +71,6 @@ Django,  Django REST Framework
 
 
 # Авторы
-Антон Лисица  
-Александр Толстиков  
-Марина Асташова   
-
+Антон Лисица
+Александр Толстиков
+Марина Асташова
