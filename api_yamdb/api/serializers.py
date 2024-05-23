@@ -109,3 +109,19 @@ class UserSerializer(serializers.ModelSerializer):
                 'Пользователь с таким email уже зарегистрирован'
             )
         return email
+
+
+class GetCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=254, required=True)
+    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
+
+    def validate_username(self, username):
+        return UserSerializer.validate_username(self, username)
+
+    def validate_email(self, email):
+        return UserSerializer.validate_email(self, email)
+
+
+class GetTokenSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    confirmation_code = serializers.CharField(required=True)
