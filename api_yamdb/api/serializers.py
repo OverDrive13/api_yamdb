@@ -18,8 +18,14 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Genre.objects.all(),
+        many=True)
     rating = serializers.SerializerMethodField()
 
     class Meta:
@@ -30,7 +36,9 @@ class TitleSerializer(serializers.ModelSerializer):
         scores = []
         for review in obj.reviews.all():
             scores.append(review.score)
-        return round(sum(scores) / len(scores))
+        if scores:
+            return round(sum(scores) / len(scores))
+        return 0
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -43,7 +51,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
         read_only_fields = ('title',)
         validators = [
             UniqueTogetherValidator(
@@ -62,7 +70,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'text', 'author', 'pub_date')
+        fields = ('id', 'text', 'author', 'pub_date', 'review')
         read_only_fields = ('review',)
 
 

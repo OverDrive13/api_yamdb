@@ -51,10 +51,13 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAdmin
     )
+    http_method_names = [
+        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
+    ]
 
-    def perform_create(self, serializer):
-        serializer.save(category=self.request.category,
-                        genre=self.request.genre)
+    # def perform_create(self, serializer):
+    #     serializer.save(category=self.request.category,
+    #                     genre=self.request.genre)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
