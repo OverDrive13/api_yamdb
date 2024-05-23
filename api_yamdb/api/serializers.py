@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from reviews.models import Category, Comment, Genre, Review, SCORES, Title
+from reviews.models import (Category, Comment, Genre, Review,
+                            SCORES, Title, User, UserRole)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -63,3 +64,48 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
         read_only_fields = ('review',)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
+    first_name = serializers.CharField(max_length=150, required=False)
+    last_name = serializers.CharField(max_length=150, required=False)
+    email = serializers.CharField(max_length=254)
+    role = serializers.ChoiceField(
+        choices=UserRole.get_all_roles(),
+        default=UserRole.USER.value,
+        required=False
+    )
+
+    class Meta:
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+            'email'
+        )
+        model = User
+
+    def validate_username(self, username):
+        if username == 'me':
+            raise serializers.ValidationError(
+                'Недопустимое имя пользователя!'
+            )
+        duplicated_username = User.objects.filter(
+            username=username
+        ).exists()
+        if duplicated_username:
+            raise serializers.ValidationError(
+                'Пользователь с таким именем уже зарегистрирован'
+            )
+        return username
+
+    def validate_email(self, email):
+        duplicated_email = User.objects.filter(email=email).exists()
+        if duplicated_email:
+            raise serializers.ValidationError(
+                'Пользователь с таким email уже зарегистрирован'
+            )
+        return email
