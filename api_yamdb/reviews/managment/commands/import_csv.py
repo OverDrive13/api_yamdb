@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Обработка команды."""
-        with open('static/data/users.csv', encoding='utf-8') as f:
+        with open('./static/data/users.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 User.objects.create(
@@ -21,24 +21,30 @@ class Command(BaseCommand):
                     role=row['role'],
                     bio=row['bio'],
                 )
+            if User.objects.exists():
+                print('данные уже загружены.')
 
-        with open('static/data/categories.csv', encoding='utf-8') as f:
+        with open('./static/data/categories.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 Category.objects.create(
                     name=row['name'],
                     slug=row['slug'],
                 )
+            if Category.objects.exists():
+                print('данные уже загружены.')
 
-        with open('static/data/genres.csv', encoding='utf-8') as f:
+        with open('./static/data/genres.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 Genre.objects.create(
                     name=row['name'],
                     slug=row['slug'],
                 )
+            if Genre.objects.exists():
+                print('данные уже загружены.')
 
-        with open('static/data/titles.csv', encoding='utf-8') as f:
+        with open('./static/data/titles.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 category = Category.objects.get(slug=row['category'])
@@ -50,8 +56,10 @@ class Command(BaseCommand):
                 for genre_slug in row['genre'].split(','):
                     genre = Genre.objects.get(slug=genre_slug)
                     title.genre.add(genre)
+                if Genre.objects.exists():
+                    print('данные уже загружены.')
 
-        with open('static/data/reviews.csv', encoding='utf-8') as f:
+        with open('./static/data/reviews.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 author = User.objects.get(username=row['author'])
@@ -63,8 +71,10 @@ class Command(BaseCommand):
                     score=row['score'],
                     pub_date=row['pub_date'],
                 )
+            if Review.objects.exists():
+                print('данные уже загружены.')
 
-        with open('static/data/comments.csv', encoding='utf-8') as f:
+        with open('./static/data/comments.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 author = User.objects.get(username=row['author'])
@@ -75,3 +85,5 @@ class Command(BaseCommand):
                     author=author,
                     pub_date=row['pub_date'],
                 )
+            if Comment.objects.exists():
+                print('данные уже загружены.')
