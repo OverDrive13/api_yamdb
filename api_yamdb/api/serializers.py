@@ -17,9 +17,9 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()
-    genre = GenreSerializer(many=True, required=False)
+class TitleResponseSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
     rating = serializers.SerializerMethodField()
 
     class Meta:
@@ -36,16 +36,42 @@ class TitleSerializer(serializers.ModelSerializer):
             return round(sum(scores) / len(scores))
         return 0
 
+
+class TitleSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Genre.objects.all(),
+        many=True
+    )
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category'
+        )
+
     def create(self, validated_data):
-        if 'genre' not in self.initial_data:
-            title = Title.objects.create(**validated_data)
-            return title
         genres = validated_data.pop('genre')
         title = Title.objects.create(**validated_data)
-        for genre in genres:
-            current_genre, status = Genre.objects.get_or_create(**genre)
-            GenreTitle.objects.create(genre=current_genre, title=title)
+        title.genre.set(genres)
         return title
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.year = validated_data.get('year', instance.year)
+        instance.description = validated_data.get(
+            'description', instance.description
+        )
+        if 'genre' in validated_data:
+            genres = validated_data.pop('genre')
+            instance.genre.set(genres)
+        instance.cagetory = validated_data.get('category', instance.category)
+        instance.save()
+        return instance
 
 
 class ReviewSerializer(serializers.ModelSerializer):

@@ -10,14 +10,15 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
 
 from .permissions import (
-    IsAuthenticatedOrOwnerReadOnly, IsAdmin, IsAdminModerator
+    IsAuthenticatedOrOwnerReadOnly, IsAdmin, IsAdminModerator,
+    IsAdminOrReadOnly
 )
 from reviews.models import (Category, Comment, Genre, Review,
                             Title, User, UserRole)
 from .serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
-    ReviewSerializer, TitleSerializer, UserSerializer, GetCodeSerializer,
-    GetTokenSerializer
+    ReviewSerializer, TitleResponseSerializer, TitleSerializer,
+    UserSerializer, GetCodeSerializer, GetTokenSerializer
 )
 
 
@@ -29,7 +30,7 @@ class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     serializer_class = CategorySerializer
     filter_backends = (filters.SearchFilter,)
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdmin
+        IsAdminOrReadOnly,
     )
     pagination_class = LimitOffsetPagination
 
@@ -42,7 +43,7 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     serializer_class = GenreSerializer
     filter_backends = (filters.SearchFilter,)
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdmin
+        IsAdminOrReadOnly,
     )
     pagination_class = LimitOffsetPagination
 
@@ -50,18 +51,16 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 class TitleViewSet(viewsets.ModelViewSet):
     """Viewset для модели Title."""
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
-    permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdmin
-    )
+    permission_classes = (IsAdminOrReadOnly,)
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
     pagination_class = LimitOffsetPagination
 
-    # def perform_create(self, serializer):
-    #     serializer.save(category=self.request.category,
-    #                     genre=self.request.genre)
+    def get_serializer_class(self):
+        if self.action == 'create' or self.action == 'update':
+            return TitleSerializer
+        return TitleResponseSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -72,7 +71,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     ]
     permission_classes = (
         IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
-        IsAdmin, IsAdminModerator
+        IsAdminOrReadOnly
     )
     pagination_class = LimitOffsetPagination
 

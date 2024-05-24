@@ -26,6 +26,21 @@ class IsAuthenticatedOrOwnerReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
+class IsAdminOrReadOnly(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        """Определяет, имеет ли пользователь право на выполнение запроса."""
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if request.user.is_authenticated:
+            is_admin = request.user.role == UserRole.ADMIN.value
+            return is_admin or request.user.is_superuser
+
+    def has_object_permission(self, request, view, obj):
+        """Выполнение запроса на конкретном объекте."""
+        return self.has_permission(request, view)
+
+
 class IsAdmin(permissions.BasePermission):
     """
     Кастомное разрешение прав доступа для администраторов.
