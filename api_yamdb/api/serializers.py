@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
+from reviews.models import (Category, Comment, Genre, Review,
                             SCORES, Title, User, UserRole)
 
 
@@ -9,12 +9,20 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug')
+        lookup_field = 'slug'
+        extra_kwargs = {
+            'url': {'lookup_field': 'slug'}
+        }
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug')
+        lookup_field = 'slug'
+        extra_kwargs = {
+            'url': {'lookup_field': 'slug'}
+        }
 
 
 class TitleResponseSerializer(serializers.ModelSerializer):
@@ -34,7 +42,7 @@ class TitleResponseSerializer(serializers.ModelSerializer):
             scores.append(review.score)
         if scores:
             return round(sum(scores) / len(scores))
-        return 0
+        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -84,7 +92,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
+        fields = '__all__'
         read_only_fields = ('title',)
         validators = [
             UniqueTogetherValidator(
@@ -103,7 +111,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'text', 'author', 'pub_date', 'review')
+        fields = '__all__'
         read_only_fields = ('review',)
 
 

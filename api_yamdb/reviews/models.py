@@ -9,8 +9,8 @@ from django.db import models
 MAX_LENGTH_NAME = 256
 
 SCORES = (
-    (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7),
-    (8, 8), (9, 9), (10, 10)
+    ('1', 1), ('2', 2), ('3', 3), ('4', 4), ('5', 5), ('6', 6), ('7', 7),
+    ('8', 8), ('9', 9), ('10', 10)
 )
 
 
@@ -85,7 +85,7 @@ class Category(models.Model):
         verbose_name='Слаг')
 
     class Meta:
-        ordering = ['name']
+        ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -101,7 +101,7 @@ class Genre(models.Model):
     slug = models.SlugField(unique=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ('name',)
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
@@ -115,15 +115,19 @@ class Title(models.Model):
     name = models.CharField(max_length=MAX_LENGTH_NAME,
                             verbose_name='Жанр')
     year = models.IntegerField()
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    genre = models.ManyToManyField(Genre, through='GenreTitle')
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE
+    )
+    genre = models.ManyToManyField(
+        Genre, through='GenreTitle'
+    )
     description = models.TextField(
         blank=True,
         null=True,
         verbose_name='Описание')
 
     class Meta:
-        ordering = ['name']
+        ordering = ('name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 

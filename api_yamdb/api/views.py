@@ -1,3 +1,5 @@
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -8,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
+
 
 from .permissions import (
     IsAuthenticatedOrOwnerReadOnly, IsAdmin, IsAdminModerator,
@@ -28,11 +31,13 @@ class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     permission_classes = (
         IsAdminOrReadOnly,
     )
-    pagination_class = LimitOffsetPagination
+    lookup_field = 'slug'
+    filterset_fields = ('name',)
+    search_fields = ('name',)
 
 
 class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -41,11 +46,29 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     permission_classes = (
         IsAdminOrReadOnly,
     )
     pagination_class = LimitOffsetPagination
+    lookup_field = 'slug'
+    filterset_fields = ('name',)
+    search_fields = ('name',)
+
+
+class TitleFilter(django_filters.FilterSet):
+    # genre = django_filters.ModelChoiceFilter(
+    #     field_name='genre__slug', queryset=Genre.objects.all()
+    # )
+    # category = django_filters.ModelChoiceFilter(
+    #     field_name='category__slug', queryset=Category.objects.all()
+    # )
+    # name = django_filters.CharFilter(field_name='name', lookup_expr='iexact')
+    # year = django_filters.NumberFilter(field_name='year')
+
+    class Meta:
+        model = Title
+        fields = ['genre__slug', 'category__slug', 'name', 'year']
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -55,12 +78,30 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
-    pagination_class = LimitOffsetPagination
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('genre__slug', 'category__slug', 'name', 'year')
+    # filter_class = TitleFilter
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'update':
             return TitleSerializer
         return TitleResponseSerializer
+
+    def update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+    # def list(self, request):
+    #     genre = request.GET.get('genre', None)
+    #     category = request.GET.get('category, None')
+    #     queryset = Title.objects.all()
+    #     if genre:
+    #         queryset = queryset.filter(genre__slug=genre)
+    #     if category:
+    #         queryset = queryset.filter(category__slug=category)
+    #     page = self.paginate_queryset(queryset)
+    #     serializer = TitleResponseSerializer(page, many=True)
+    #     return Response(data=serializer.data)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -71,9 +112,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
     ]
     permission_classes = (
         IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
-        IsAdminOrReadOnly
+        IsAdminModerator
     )
-    pagination_class = LimitOffsetPagination
 
     def get_title(self):
         return get_object_or_404(Title, id=self.kwargs['title_id'])
@@ -93,12 +133,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
-        IsAdmin, IsAdminModerator
+        IsAdminModerator
     )
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
-    pagination_class = LimitOffsetPagination
 
     def get_review(self):
         return get_object_or_404(Review, id=self.kwargs['review_id'])
