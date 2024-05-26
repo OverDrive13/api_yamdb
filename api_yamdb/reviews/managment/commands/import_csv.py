@@ -10,6 +10,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Обработка команды."""
+        self.load_users()
+        self.load_categories()
+        self.load_genres()
+        self.load_titles()
+        self.load_reviews()
+        self.load_comments()
+
+    def load_users(self):
         with open('./static/data/users.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not User.objects.exists():
@@ -26,6 +34,8 @@ class Command(BaseCommand):
             else:
                 print('Данные уже загружены.')
 
+    def load_categories(self):
+        """Load categories from CSV."""
         with open('./static/data/categories.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not Category.objects.exists():
@@ -38,6 +48,7 @@ class Command(BaseCommand):
             else:
                 print('Категории уже загружены.')
 
+    def load_genres(self):
         with open('./static/data/genres.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not Genre.objects.exists():
@@ -50,6 +61,7 @@ class Command(BaseCommand):
             else:
                 print('Жанры уже загружены.')
 
+    def load_titles(self):
         with open('./static/data/titles.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -65,6 +77,7 @@ class Command(BaseCommand):
             if Title.objects.exists():
                 print('Фильмы загружены.')
 
+    def load_reviews(self):
         with open('./static/data/reviews.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not Review.objects.exists():
@@ -82,6 +95,7 @@ class Command(BaseCommand):
             else:
                 print('Отзывы уже загружены.')
 
+    def load_comments(self):
         with open('./static/data/comments.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not Comment.objects.exists():
