@@ -24,7 +24,6 @@ Response:
 
 Django,  Django REST Framework
 
-
 # Авторы
 Антон Лисица  
 Александр Толстиков  
