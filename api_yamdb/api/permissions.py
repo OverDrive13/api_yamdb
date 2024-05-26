@@ -3,30 +3,8 @@ from rest_framework import permissions
 from reviews.models import UserRole
 
 
-class IsAuthenticatedOrOwnerReadOnly(permissions.BasePermission):
-    """
-    Чтение или авторизованный пользователь.
-
-    Разрешает безопасные методы (чтение) всем пользователям,
-    а права на запись — только аутентифицированным пользователям
-    и владельцу объекта.
-    """
-
-    def has_permission(self, request, view):
-        """Определяет, имеет ли пользователь право на выполнение запроса."""
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user and request.user.is_authenticated
-
-    def has_object_permission(self, request, view, obj):
-        """Выполнение запроса на конкретном объекте."""
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        # Разрешения на запись разрешены только владельцу объекта
-        return obj.author == request.user
-
-
 class IsAdminOrReadOnly(permissions.BasePermission):
+    """Доступ к созданию и изменению объекта только у админа"""
 
     def has_permission(self, request, view):
         """Определяет, имеет ли пользователь право на выполнение запроса."""
@@ -42,12 +20,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class IsAdmin(permissions.BasePermission):
-    """
-    Кастомное разрешение прав доступа для администраторов.
-
-    Разрешает доступ только аутентифицированным пользователям
-    с ролью администратора или суперпользователя.
-    """
+    """Доступ ко всему только у админа"""
 
     def has_permission(self, request, view):
         """Определяет, имеет ли пользователь право на выполнение запроса."""
@@ -60,8 +33,8 @@ class IsAdmin(permissions.BasePermission):
         return self.has_permission(request, view)
 
 
-class IsAdminModerator(permissions.BasePermission):
-    """Кастомное разрешение прав доступа для администраторов и модераторов."""
+class IsAdminModeratorAuthorOrReadOnly(permissions.BasePermission):
+    """Доступ к изменению объекта для админа, модератора и автора."""
 
     def has_permission(self, request, view):
         """Определяет, имеет ли пользователь право на выполнение запроса."""
