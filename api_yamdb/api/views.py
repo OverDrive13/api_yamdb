@@ -2,6 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+
 from rest_framework import (
     viewsets, mixins, filters, permissions, status, serializers
 )
@@ -11,7 +12,6 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
-
 
 from .permissions import (
     IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
@@ -53,6 +53,7 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Viewset для модели Title."""
+
     queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
     http_method_names = [
@@ -89,6 +90,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """Viewset для модели Review."""
+
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     http_method_names = [
@@ -116,6 +119,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """Viewset для модели Comment."""
+
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
@@ -137,6 +142,8 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    """Viewset для модели User."""
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = (filters.SearchFilter,)
