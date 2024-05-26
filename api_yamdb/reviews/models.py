@@ -9,6 +9,8 @@ from .constants import MAX_LENGTH_NAME, SCORES
 
 
 class CustomUserManager(BaseUserManager):
+    """Создание Юзера."""
+
     def create_user(self, email, password=None, **kwargs):
         user = self.model(email=email, **kwargs)
         user.set_password(password)
@@ -28,6 +30,8 @@ class CustomUserManager(BaseUserManager):
 
 
 class UserRole(Enum):
+    """Роли Юзера."""
+
     USER = 'user'
     MODERATOR = 'moderator'
     ADMIN = 'admin'
@@ -43,6 +47,8 @@ class UserRole(Enum):
 
 
 class User(AbstractUser):
+    """Юзер."""
+
     USERNAME_VALIDATOR = RegexValidator(r'^[\w.@+-]+\Z')
     bio = models.TextField(
         'Дополнительная информация о пользователе',
@@ -133,6 +139,8 @@ class Title(models.Model):
 
 
 class Review(models.Model):
+    """Отзыв."""
+
     text = models.TextField('Текст отзыва')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     score = models.IntegerField('Оценка', choices=SCORES)
@@ -155,6 +163,8 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
+    """Комментарий."""
+
     text = models.TextField('Текст комментария')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     pub_date = models.DateTimeField('Дата добавления', auto_now_add=True)
