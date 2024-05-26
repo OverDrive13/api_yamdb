@@ -35,7 +35,6 @@ class Command(BaseCommand):
                 print('Данные уже загружены.')
 
     def load_categories(self):
-        """Load categories from CSV."""
         with open('./static/data/categories.csv', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not Category.objects.exists():
