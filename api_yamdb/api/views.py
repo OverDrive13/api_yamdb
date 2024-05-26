@@ -1,9 +1,10 @@
-import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from rest_framework import viewsets, mixins, filters, permissions, status
+from rest_framework import (
+    viewsets, mixins, filters, permissions, status, serializers
+)
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes, action
@@ -11,17 +12,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
 
-
 from .permissions import (
-    IsAuthenticatedOrOwnerReadOnly, IsAdmin, IsAdminModerator,
-    IsAdminOrReadOnly
-)
-from reviews.models import (Category, Comment, Genre, Review,
-                            Title, User, UserRole)
+    IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
+from reviews.models import (
+    Category, Comment, Genre, Review, Title, User, UserRole)
 from .serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
     ReviewSerializer, TitleResponseSerializer, TitleSerializer,
-    UserSerializer, GetCodeSerializer, GetTokenSerializer
+    UserSerializer, GetTokenSerializer, SignupSerializer
 )
 
 
@@ -56,21 +54,6 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     search_fields = ('name',)
 
 
-class TitleFilter(django_filters.FilterSet):
-    # genre = django_filters.ModelChoiceFilter(
-    #     field_name='genre__slug', queryset=Genre.objects.all()
-    # )
-    # category = django_filters.ModelChoiceFilter(
-    #     field_name='category__slug', queryset=Category.objects.all()
-    # )
-    # name = django_filters.CharFilter(field_name='name', lookup_expr='iexact')
-    # year = django_filters.NumberFilter(field_name='year')
-
-    class Meta:
-        model = Title
-        fields = ['genre__slug', 'category__slug', 'name', 'year']
-
-
 class TitleViewSet(viewsets.ModelViewSet):
     """Viewset для модели Title."""
     queryset = Title.objects.all()
@@ -79,29 +62,33 @@ class TitleViewSet(viewsets.ModelViewSet):
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = ('genre__slug', 'category__slug', 'name', 'year')
-    # filter_class = TitleFilter
+    filterset_fields = ('name', 'year')
 
     def get_serializer_class(self):
-        if self.action == 'create' or self.action == 'update':
+        if self.action == 'create' or self.action == 'partial_update':
             return TitleSerializer
         return TitleResponseSerializer
 
-    def update(self, request, *args, **kwargs):
-        kwargs['partial'] = True
-        return super().update(request, *args, **kwargs)
+    def partial_update(self, request, *args, **kwargs):
+        title = self.get_object()
+        serializer = TitleSerializer(title, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
-    # def list(self, request):
-    #     genre = request.GET.get('genre', None)
-    #     category = request.GET.get('category, None')
-    #     queryset = Title.objects.all()
-    #     if genre:
-    #         queryset = queryset.filter(genre__slug=genre)
-    #     if category:
-    #         queryset = queryset.filter(category__slug=category)
-    #     page = self.paginate_queryset(queryset)
-    #     serializer = TitleResponseSerializer(page, many=True)
-    #     return Response(data=serializer.data)
+    def list(self, request):
+        genre = request.GET.get('genre')
+        category = request.GET.get('category')
+        queryset = Title.objects.all()
+        if not genre and not category:
+            return super().list(request)
+        if genre:
+            queryset = queryset.filter(genre__slug=genre)
+        if category:
+            queryset = queryset.filter(category__slug=category)
+        page = self.paginate_queryset(queryset)
+        serializer = TitleResponseSerializer(page, many=True)
+        return self.get_paginated_response(data=serializer.data)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -110,10 +97,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
-    permission_classes = (
-        IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
-        IsAdminModerator
-    )
+    permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
 
     def get_title(self):
         return get_object_or_404(Title, id=self.kwargs['title_id'])
@@ -122,6 +106,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
+        user = self.request.user
+        title_id = self.kwargs['title_id']
+        if user.reviews.filter(title__id=title_id).exists():
+            raise serializers.ValidationError(
+                'Пользователь может оставить только один отзыв на произведение'
+            )
         serializer.save(
             author=self.request.user,
             title=self.get_title()
@@ -131,10 +121,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = (
-        IsAuthenticatedOrOwnerReadOnly, permissions.IsAuthenticatedOrReadOnly,
-        IsAdminModerator
-    )
+    permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
@@ -160,9 +147,12 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAdmin]
     lookup_field = 'username'
+    http_method_names = [
+        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
+    ]
 
     @action(methods=['get', 'patch'], detail=False,
-            permission_classes=(IsAuthenticatedOrOwnerReadOnly,))
+            permission_classes=(permissions.IsAuthenticated,))
     def me(self, request):
         if request.method == 'GET':
             user = self.request.user
@@ -194,9 +184,34 @@ class UserViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def signup(request):
+    serializer = SignupSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    if not request.user.is_authenticated:
+        return get_confirmation_code(request)
+    if request.user.role == UserRole.ADMIN.value:
+        serializer = UserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get('email')
+        username = serializer.validated_data.get('username')
+        try:
+            User.objects.create(
+                username=username,
+                email=email,
+                is_active=True
+            )
+        except Exception:
+            return Response(request.data,
+                            status=status.HTTP_400_BAD_REQUEST)
+    return Response(
+        request.data,
+        status=status.HTTP_200_OK
+    )
+
+
 def get_confirmation_code(request):
     """Получить код подтверждения на указанный email"""
-    serializer = GetCodeSerializer(data=request.data)
+    serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     email = serializer.validated_data.get('email')
     username = serializer.validated_data.get('username')
@@ -204,11 +219,10 @@ def get_confirmation_code(request):
         user, exist = User.objects.get_or_create(
             username=username,
             email=email,
-            is_active=False
         )
-    except Exception:
-        return Response(request.data,
-                        status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print(e)
+        return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
     confirmation_code = default_token_generator.make_token(user)
     User.objects.filter(username=username).update(
         confirmation_code=confirmation_code

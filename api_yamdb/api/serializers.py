@@ -1,8 +1,10 @@
+import datetime as dt
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
 
-from reviews.models import (Category, Comment, Genre, Review,
-                            SCORES, Title, User, UserRole)
+from reviews.constants import SCORES
+from reviews.models import (
+    Category, Comment, Genre, Review, Title, User, UserRole
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -77,31 +79,29 @@ class TitleSerializer(serializers.ModelSerializer):
         if 'genre' in validated_data:
             genres = validated_data.pop('genre')
             instance.genre.set(genres)
-        instance.cagetory = validated_data.get('category', instance.category)
+        instance.category = validated_data.get('category', instance.category)
         instance.save()
         return instance
+
+    def validate_year(self, value):
+        if value > dt.date.today().year:
+            raise serializers.ValidationError(
+                'Нельзя добавлять произведения, которые еще не вышли')
+        return value
 
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
-        slug_field='username',
-        read_only=True,
-        default=serializers.CurrentUserDefault()
+        slug_field='username', read_only=True
+    )
+    title = serializers.SlugRelatedField(
+        slug_field='id', read_only=True
     )
     score = serializers.ChoiceField(choices=SCORES)
 
     class Meta:
         model = Review
         fields = '__all__'
-        read_only_fields = ('title',)
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Review.objects.all(),
-                fields=['author', 'title'],
-                message='Пользователь может оставить только'
-                        'один отзыв на произведение'
-            ),
-        ]
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -142,35 +142,30 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Недопустимое имя пользователя!'
             )
-        duplicated_username = User.objects.filter(
-            username=username
-        ).exists()
-        if duplicated_username:
+        if User.objects.filter(username=username).exists():
             raise serializers.ValidationError(
                 'Пользователь с таким именем уже зарегистрирован'
             )
         return username
 
     def validate_email(self, email):
-        duplicated_email = User.objects.filter(email=email).exists()
-        if duplicated_email:
+        if User.objects.filter(email=email).exists():
             raise serializers.ValidationError(
                 'Пользователь с таким email уже зарегистрирован'
             )
         return email
 
 
-class GetCodeSerializer(serializers.Serializer):
+class GetTokenSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    confirmation_code = serializers.CharField(required=True)
+
+
+class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=254, required=True)
     username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
 
     def validate_username(self, username):
-        return UserSerializer.validate_username(self, username)
-
-    def validate_email(self, email):
-        return UserSerializer.validate_email(self, email)
-
-
-class GetTokenSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
-    confirmation_code = serializers.CharField(required=True)
+        if username == 'me':
+            raise serializers.ValidationError('Недопустимое имя пользователя!')
+        return username

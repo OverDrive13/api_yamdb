@@ -3,15 +3,9 @@ from enum import Enum
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
-
 from django.db import models
 
-MAX_LENGTH_NAME = 256
-
-SCORES = (
-    ('1', 1), ('2', 2), ('3', 3), ('4', 4), ('5', 5), ('6', 6), ('7', 7),
-    ('8', 8), ('9', 9), ('10', 10)
-)
+from .constants import MAX_LENGTH_NAME, SCORES
 
 
 class CustomUserManager(BaseUserManager):
@@ -109,43 +103,33 @@ class Genre(models.Model):
         return self.name
 
 
+class RelatedName():
+    class Meta:
+        default_related_name = '%(class)ss'
+
+
 class Title(models.Model):
     """Произведения."""
 
-    name = models.CharField(max_length=MAX_LENGTH_NAME,
-                            verbose_name='Жанр')
+    name = models.CharField(
+        max_length=MAX_LENGTH_NAME,
+        verbose_name='Жанр')
     year = models.IntegerField()
     category = models.ForeignKey(
-        Category, on_delete=models.CASCADE
-    )
-    genre = models.ManyToManyField(
-        Genre, through='GenreTitle'
-    )
+        Category, on_delete=models.CASCADE)
+    genre = models.ManyToManyField(Genre)
     description = models.TextField(
         blank=True,
         null=True,
         verbose_name='Описание')
 
-    class Meta:
+    class Meta(RelatedName.Meta):
         ordering = ('name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
     def __str__(self):
         return self.name
-
-
-class GenreTitle(models.Model):
-    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
-    title = models.ForeignKey(Title, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'{self.genre} {self.title}'
-
-
-class RelatedName():
-    class Meta:
-        default_related_name = '%(class)ss'
 
 
 class Review(models.Model):
@@ -157,6 +141,14 @@ class Review(models.Model):
 
     class Meta(RelatedName.Meta):
         ordering = ('-pub_date',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'],
+                name='unique_author_title'
+            )
+        ]
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
 
     def __str__(self):
         return f'{self.text[:10]} {self.author} {self.pub_date}'
@@ -170,6 +162,8 @@ class Comment(models.Model):
 
     class Meta(RelatedName.Meta):
         ordering = ('pub_date',)
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
 
     def __str__(self):
         return f'{self.text[:10]} {self.author} {self.pub_date}'
