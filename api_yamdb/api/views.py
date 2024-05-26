@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.pagination import LimitOffsetPagination
 
+
 from .permissions import (
     IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
 from reviews.models import (
@@ -29,12 +30,11 @@ class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    filter_backends = (filters.SearchFilter,)
     permission_classes = (
         IsAdminOrReadOnly,
     )
     lookup_field = 'slug'
-    filterset_fields = ('name',)
     search_fields = ('name',)
 
 
@@ -44,13 +44,10 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    permission_classes = (
-        IsAdminOrReadOnly,
-    )
+    filter_backends = (filters.SearchFilter,)
+    permission_classes = (IsAdminOrReadOnly,)
     pagination_class = LimitOffsetPagination
     lookup_field = 'slug'
-    filterset_fields = ('name',)
     search_fields = ('name',)
 
 
