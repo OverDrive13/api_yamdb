@@ -22,10 +22,11 @@ from .serializers import (
     ReviewSerializer, TitleResponseSerializer, TitleSerializer,
     UserSerializer, GetTokenSerializer, SignupSerializer
 )
+from .mixins import ModelMixinSet
+from api.filters import TitleFilter
 
 
-class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
-                      mixins.DestroyModelMixin, viewsets.GenericViewSet):
+class CategoryViewSet(ModelMixinSet):
     """Viewset для модели Category."""
 
     queryset = Category.objects.all()
@@ -38,8 +39,7 @@ class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     search_fields = ('name',)
 
 
-class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
-                   mixins.DestroyModelMixin, viewsets.GenericViewSet):
+class GenreViewSet(ModelMixinSet):
     """Viewset для модели Genre."""
 
     queryset = Genre.objects.all()
@@ -61,32 +61,12 @@ class TitleViewSet(viewsets.ModelViewSet):
     ]
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('name', 'year')
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
             return TitleSerializer
         return TitleResponseSerializer
-
-    def partial_update(self, request, *args, **kwargs):
-        title = self.get_object()
-        serializer = TitleSerializer(title, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def list(self, request):
-        genre = request.GET.get('genre')
-        category = request.GET.get('category')
-        queryset = Title.objects.all()
-        if not genre and not category:
-            return super().list(request)
-        if genre:
-            queryset = queryset.filter(genre__slug=genre)
-        if category:
-            queryset = queryset.filter(category__slug=category)
-        page = self.paginate_queryset(queryset)
-        serializer = TitleResponseSerializer(page, many=True)
-        return self.get_paginated_response(data=serializer.data)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -129,7 +109,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     ]
 
     def get_review(self):
-        return get_object_or_404(Review, id=self.kwargs['review_id'])
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        return get_object_or_404(Review, id=review_id, title__id=title_id)
 
     def get_queryset(self):
         return self.get_review().comments.all()
@@ -180,10 +162,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 data=serializer.data,
                 status=status.HTTP_200_OK
             )
-        return Response(
-            data=request.data,
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 @api_view(['POST'])
@@ -191,26 +169,7 @@ class UserViewSet(viewsets.ModelViewSet):
 def signup(request):
     serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    if not request.user.is_authenticated:
-        return get_confirmation_code(request)
-    if request.user.role == UserRole.ADMIN.value:
-        serializer = UserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email')
-        username = serializer.validated_data.get('username')
-        try:
-            User.objects.create(
-                username=username,
-                email=email,
-                is_active=True
-            )
-        except Exception:
-            return Response(request.data,
-                            status=status.HTTP_400_BAD_REQUEST)
-    return Response(
-        request.data,
-        status=status.HTTP_200_OK
-    )
+    return get_confirmation_code(request)
 
 
 def get_confirmation_code(request):
@@ -220,12 +179,8 @@ def get_confirmation_code(request):
     email = serializer.validated_data.get('email')
     username = serializer.validated_data.get('username')
     try:
-        user, exist = User.objects.get_or_create(
-            username=username,
-            email=email,
-        )
-    except Exception as e:
-        print(e)
+        user, _ = User.objects.get_or_create(username=username, email=email)
+    except Exception:
         return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
     confirmation_code = default_token_generator.make_token(user)
     User.objects.filter(username=username).update(

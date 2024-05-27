@@ -2,7 +2,7 @@ import datetime as dt
 
 from rest_framework import serializers
 
-from reviews.constants import SCORES
+from reviews.constants import MAX_LENGTH_NAME
 from reviews.models import (
     Category, Comment, Genre, Review, Title, User, UserRole
 )
@@ -12,20 +12,12 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug')
-        lookup_field = 'slug'
-        extra_kwargs = {
-            'url': {'lookup_field': 'slug'}
-        }
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug')
-        lookup_field = 'slug'
-        extra_kwargs = {
-            'url': {'lookup_field': 'slug'}
-        }
 
 
 class TitleResponseSerializer(serializers.ModelSerializer):
@@ -65,25 +57,6 @@ class TitleSerializer(serializers.ModelSerializer):
             'id', 'name', 'year', 'description', 'genre', 'category'
         )
 
-    def create(self, validated_data):
-        genres = validated_data.pop('genre')
-        title = Title.objects.create(**validated_data)
-        title.genre.set(genres)
-        return title
-
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.year = validated_data.get('year', instance.year)
-        instance.description = validated_data.get(
-            'description', instance.description
-        )
-        if 'genre' in validated_data:
-            genres = validated_data.pop('genre')
-            instance.genre.set(genres)
-        instance.category = validated_data.get('category', instance.category)
-        instance.save()
-        return instance
-
     def validate_year(self, value):
         if value > dt.date.today().year:
             raise serializers.ValidationError(
@@ -98,11 +71,10 @@ class ReviewSerializer(serializers.ModelSerializer):
     title = serializers.SlugRelatedField(
         slug_field='id', read_only=True
     )
-    score = serializers.ChoiceField(choices=SCORES)
 
     class Meta:
         model = Review
-        fields = '__all__'
+        fields = ('id', 'author', 'text', 'score', 'pub_date', 'title')
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -112,7 +84,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = '__all__'
+        fields = ('id', 'author', 'text', 'pub_date')
         read_only_fields = ('review',)
 
 
@@ -163,7 +135,7 @@ class GetTokenSerializer(serializers.Serializer):
 
 
 class SignupSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254, required=True)
+    email = serializers.EmailField(max_length=MAX_LENGTH_NAME, required=True)
     username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
 
     def validate_username(self, username):

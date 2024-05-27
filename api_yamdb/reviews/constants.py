@@ -1,4 +1,4 @@
-MAX_LENGTH_NAME = 256
+MAX_LENGTH_NAME = 254
 
 SCORES = (
     (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7),

@@ -28,10 +28,6 @@ class IsAdmin(permissions.BasePermission):
             is_admin = request.user.role == UserRole.ADMIN.value
             return is_admin or request.user.is_superuser
 
-    def has_object_permission(self, request, view, obj):
-        """Выполнение запроса на конкретном объекте."""
-        return self.has_permission(request, view)
-
 
 class IsAdminModeratorAuthorOrReadOnly(permissions.BasePermission):
     """Доступ к изменению объекта для админа, модератора и автора."""
