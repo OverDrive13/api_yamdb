@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 def year_validator(value):
     if value > timezone.now().year:
         raise ValidationError(
-            'Введите корректный год!'
+            'Нельзя добавлять произведения, которые еще не вышли.'
         )
 
 

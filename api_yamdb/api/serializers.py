@@ -1,5 +1,3 @@
-import datetime as dt
-
 from rest_framework import serializers
 
 from reviews.constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
@@ -26,21 +24,13 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleResponseSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(default=None)
 
     class Meta:
         model = Title
         fields = (
             'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
         )
-
-    def get_rating(self, obj):
-        scores = []
-        for review in obj.reviews.all():
-            scores.append(review.score)
-        if scores:
-            return round(sum(scores) / len(scores))
-        return None
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -51,7 +41,7 @@ class TitleSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
         slug_field='slug',
         queryset=Genre.objects.all(),
-        many=True
+        many=True, allow_null=False, allow_empty=False
     )
 
     class Meta:
@@ -60,11 +50,18 @@ class TitleSerializer(serializers.ModelSerializer):
             'id', 'name', 'year', 'description', 'genre', 'category'
         )
 
-    def validate_year(self, value):
-        if value > dt.date.today().year:
-            raise serializers.ValidationError(
-                'Нельзя добавлять произведения, которые еще не вышли')
-        return value
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['category'] = {
+            'name': instance.category.name,
+            'slug': instance.category.slug
+        }
+        ret['genre'] = [{
+            'name': instance.category.name,
+            'slug': instance.category.slug
+        }]
+        ret['rating'] = 0
+        return ret
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -78,6 +75,16 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'author', 'text', 'score', 'pub_date', 'title')
+
+    def validate(self, data):
+        if self.context['request']._request.method == 'POST':
+            user = self.context['request'].user
+            title_id = self.context['view'].kwargs['title_id']
+            if user.reviews.filter(title__id=title_id).exists():
+                raise serializers.ValidationError(
+                    'Пользователь может оставить только один отзыв на произведение'
+                )
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
