@@ -1,3 +1,4 @@
+from django.db.models import Avg, F
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.tokens import default_token_generator
@@ -53,12 +54,11 @@ class GenreViewSet(ModelMixinSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Viewset для модели Title."""
-
-    queryset = Title.objects.all()
+    queryset = Title.objects.annotate(
+        rating=Avg(F('reviews__score'))
+    ).order_by(*Title._meta.ordering)
     permission_classes = (IsAdminOrReadOnly,)
-    http_method_names = [
-        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
-    ]
+    http_method_names = ['get', 'post', 'patch', 'delete']
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('name', 'year')
     filterset_class = TitleFilter
@@ -74,9 +74,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    http_method_names = [
-        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
-    ]
+    http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
 
     def get_title(self):
@@ -86,12 +84,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
-        user = self.request.user
-        title_id = self.kwargs['title_id']
-        if user.reviews.filter(title__id=title_id).exists():
-            raise serializers.ValidationError(
-                'Пользователь может оставить только один отзыв на произведение'
-            )
         serializer.save(
             author=self.request.user,
             title=self.get_title()
@@ -104,9 +96,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = (IsAdminModeratorAuthorOrReadOnly,)
-    http_method_names = [
-        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
-    ]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_review(self):
         title_id = self.kwargs.get('title_id')
