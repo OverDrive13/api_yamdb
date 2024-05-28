@@ -4,9 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 
-from rest_framework import (
-    viewsets, mixins, filters, permissions, status, serializers
-)
+from rest_framework import viewsets, filters, permissions, status
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes, action
