@@ -8,11 +8,8 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Определяет, имеет ли пользователь право на выполнение запроса."""
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        if request.user.is_authenticated:
-            is_admin = request.user.role == UserRole.ADMIN.value
-            return is_admin or request.user.is_superuser
+        return (request.method in permissions.SAFE_METHODS or
+                (request.user.is_authenticated and request.user.is_admin))
 
     def has_object_permission(self, request, view, obj):
         """Выполнение запроса на конкретном объекте."""
@@ -28,18 +25,9 @@ class IsAdmin(permissions.BasePermission):
             is_admin = request.user.role == UserRole.ADMIN.value
             return is_admin or request.user.is_superuser
 
-    def has_object_permission(self, request, view, obj):
-        """Выполнение запроса на конкретном объекте."""
-        return self.has_permission(request, view)
 
-
-class IsAdminModeratorAuthorOrReadOnly(permissions.BasePermission):
+class IsAdminModeratorAuthorOrReadOnly(permissions.IsAuthenticatedOrReadOnly):
     """Доступ к изменению объекта для админа, модератора и автора."""
-
-    def has_permission(self, request, view):
-        """Определяет, имеет ли пользователь право на выполнение запроса."""
-        return (request.method in permissions.SAFE_METHODS
-                or request.user.is_authenticated)
 
     def has_object_permission(self, request, view, obj):
         """Выполнение запроса на конкретном объекте."""

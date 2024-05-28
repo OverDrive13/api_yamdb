@@ -1,35 +1,13 @@
-from enum import Enum
-
-from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
+from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
 
-from .constants import MAX_LENGTH_NAME, SCORES
-
-
-class CustomUserManager(BaseUserManager):
-    """Создание Юзера."""
-
-    def create_user(self, email, password=None, **kwargs):
-        user = self.model(email=email, **kwargs)
-        user.set_password(password)
-        user.save()
-        return user
-
-    def create_superuser(self, email, password, **kwargs):
-        user = self.model(
-            email=email,
-            is_staff=True,
-            is_superuser=True,
-            **kwargs
-        )
-        user.set_password(password)
-        user.save()
-        return user
+from .constants import MAX_LENGTH_NAME
+from .validators import year_validator, validate_username
 
 
-class UserRole(Enum):
+class UserRole(models.TextChoices):
     """Роли Юзера."""
 
     USER = 'user'
@@ -38,38 +16,39 @@ class UserRole(Enum):
 
     @staticmethod
     def get_max_length():
-        max_length = max(len(role.value) for role in UserRole)
-        return max_length
-
-    @staticmethod
-    def get_all_roles():
-        return tuple((role.value, role.name) for role in UserRole)
+        return max(len(role.value) for role in UserRole)
 
 
 class User(AbstractUser):
     """Юзер."""
 
-    USERNAME_VALIDATOR = RegexValidator(r'^[\w.@+-]+\Z')
+    USERNAME_VALIDATOR = UnicodeUsernameValidator()
     bio = models.TextField(
         'Дополнительная информация о пользователе',
         blank=True,
     )
-    username = models.CharField(validators=[USERNAME_VALIDATOR],
-                                max_length=150, unique=True)
-    email = models.EmailField(unique=True, max_length=254)
-    first_name = models.CharField(max_length=150, blank=True)
-    last_name = models.CharField(max_length=150, blank=True)
-    password = models.CharField(blank=True, max_length=124)
-    confirmation_code = models.CharField(max_length=60, default='000000')
+    username = models.CharField(validators=[USERNAME_VALIDATOR,
+                                validate_username],
+                                max_length=MAX_LENGTH_NAME, unique=True)
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=MAX_LENGTH_NAME, blank=True)
+    last_name = models.CharField(max_length=MAX_LENGTH_NAME, blank=True)
+    confirmation_code = models.CharField(
+        max_length=MAX_LENGTH_NAME,
+        blank=True)
     role = models.CharField(
         max_length=UserRole.get_max_length(),
-        choices=UserRole.get_all_roles(),
-        default=UserRole.USER.value
+        choices=UserRole.choices,
+        default=UserRole.USER
     )
-    objects = CustomUserManager()
+    objects = UserManager()
 
     class Meta:
         ordering = ('username',)
+
+    @property
+    def is_admin(self):
+        return self.role == UserRole.ADMIN.value or self.is_superuser
 
     def __str__(self):
         return self.username
@@ -109,7 +88,7 @@ class Genre(models.Model):
         return self.name
 
 
-class RelatedName():
+class RelatedName:
     class Meta:
         default_related_name = '%(class)ss'
 
@@ -120,7 +99,9 @@ class Title(models.Model):
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         verbose_name='Жанр')
-    year = models.IntegerField()
+    year = models.SmallIntegerField(
+        validators=[year_validator],
+    )
     category = models.ForeignKey(
         Category, on_delete=models.CASCADE)
     genre = models.ManyToManyField(Genre)
@@ -143,7 +124,13 @@ class Review(models.Model):
 
     text = models.TextField('Текст отзыва')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    score = models.IntegerField('Оценка', choices=SCORES)
+    score = models.SmallIntegerField(
+        'Оценка',
+        validators=[
+            MaxValueValidator(10, ),
+            MinValueValidator(1, )
+        ]
+    )
     pub_date = models.DateTimeField('Дата добавления', auto_now_add=True)
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
 
