@@ -2,10 +2,13 @@ import datetime as dt
 
 from rest_framework import serializers
 
-from reviews.constants import MAX_LENGTH_NAME
+from reviews.constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from reviews.models import (
     Category, Comment, Genre, Review, Title, User, UserRole
 )
+from reviews.validators import (
+    validate_username, validate_email, validate_username_exists)
+from reviews.constants import USERNAME_VALIDATOR
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -89,10 +92,16 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
-    first_name = serializers.CharField(max_length=150, required=False)
-    last_name = serializers.CharField(max_length=150, required=False)
-    email = serializers.CharField(max_length=254)
+    username = serializers.CharField(
+        validators=[USERNAME_VALIDATOR,
+                    validate_username, validate_username_exists],
+        max_length=MAX_LENGTH_USER)
+    first_name = serializers.CharField(
+        max_length=MAX_LENGTH_USER, required=False)
+    last_name = serializers.CharField(
+        max_length=MAX_LENGTH_USER, required=False)
+    email = serializers.CharField(validators=[validate_email],
+                                  max_length=MAX_LENGTH_NAME)
     role = serializers.ChoiceField(
         choices=UserRole.get_all_roles(),
         default=UserRole.USER.value,
@@ -110,35 +119,16 @@ class UserSerializer(serializers.ModelSerializer):
         )
         model = User
 
-    def validate_username(self, username):
-        if username == 'me':
-            raise serializers.ValidationError(
-                'Недопустимое имя пользователя!'
-            )
-        if User.objects.filter(username=username).exists():
-            raise serializers.ValidationError(
-                'Пользователь с таким именем уже зарегистрирован'
-            )
-        return username
-
-    def validate_email(self, email):
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError(
-                'Пользователь с таким email уже зарегистрирован'
-            )
-        return email
-
 
 class GetTokenSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
+    username = serializers.CharField(validators=[USERNAME_VALIDATOR,
+                                                 validate_username],
+                                     required=True)
     confirmation_code = serializers.CharField(required=True)
 
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=MAX_LENGTH_NAME, required=True)
-    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
-
-    def validate_username(self, username):
-        if username == 'me':
-            raise serializers.ValidationError('Недопустимое имя пользователя!')
-        return username
+    username = serializers.CharField(validators=[USERNAME_VALIDATOR,
+                                                 validate_username],
+                                     max_length=MAX_LENGTH_USER)
