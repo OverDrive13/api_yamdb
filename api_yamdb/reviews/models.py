@@ -1,7 +1,6 @@
 from enum import Enum
 
-from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -10,28 +9,7 @@ from .constants import MAX_LENGTH_NAME
 from .validators import year_validator, validate_username
 
 
-class CustomUserManager(BaseUserManager):
-    """Создание Юзера."""
-
-    def create_user(self, email, password=None, **kwargs):
-        user = self.model(email=email, **kwargs)
-        user.set_password(password)
-        user.save()
-        return user
-
-    def create_superuser(self, email, password, **kwargs):
-        user = self.model(
-            email=email,
-            is_staff=True,
-            is_superuser=True,
-            **kwargs
-        )
-        user.set_password(password)
-        user.save()
-        return user
-
-
-class UserRole(Enum):
+class UserRole(models.TextChoices):
     """Роли Юзера."""
 
     USER = 'user'
@@ -41,10 +19,6 @@ class UserRole(Enum):
     @staticmethod
     def get_max_length():
         return max(len(role.value) for role in UserRole)
-
-    @staticmethod
-    def get_all_roles():
-        return tuple((role.value, role.name) for role in UserRole)
 
 
 class User(AbstractUser):
@@ -66,10 +40,10 @@ class User(AbstractUser):
         blank=True)
     role = models.CharField(
         max_length=UserRole.get_max_length(),
-        choices=UserRole.get_all_roles(),
-        default=UserRole.USER.value
+        choices=UserRole.choices,
+        default=UserRole.USER
     )
-    objects = CustomUserManager()
+    objects = UserManager()
 
     class Meta:
         ordering = ('username',)
@@ -127,7 +101,7 @@ class Title(models.Model):
     name = models.CharField(
         max_length=MAX_LENGTH_NAME,
         verbose_name='Жанр')
-    year = models.IntegerField(
+    year = models.SmallIntegerField(
         validators=[year_validator],
     )
     category = models.ForeignKey(
