@@ -103,8 +103,8 @@ class UserSerializer(serializers.ModelSerializer):
     email = serializers.CharField(validators=[validate_email],
                                   max_length=MAX_LENGTH_NAME)
     role = serializers.ChoiceField(
-        choices=UserRole.get_all_roles(),
-        default=UserRole.USER.value,
+        choices=UserRole.choices,
+        default=UserRole.USER,
         required=False
     )
 
