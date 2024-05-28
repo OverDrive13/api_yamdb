@@ -133,20 +133,18 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = [IsAdmin]
     lookup_field = 'username'
-    http_method_names = [
-        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
-    ]
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     @action(methods=['get', 'patch'], detail=False,
             permission_classes=(permissions.IsAuthenticated,))
     def me(self, request):
+        user = get_object_or_404(User, id=request.user.id)
+
         if request.method == 'GET':
-            user = self.request.user
             serializer = UserSerializer(user)
             return Response(serializer.data, status.HTTP_200_OK)
 
         if request.method == 'PATCH':
-            user = get_object_or_404(User, id=request.user.id)
             fixed_data = self.request.data.copy()
             if ('role' in self.request.data
                     and user.role == UserRole.USER.value):
@@ -183,9 +181,8 @@ def get_confirmation_code(request):
     except Exception:
         return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
     confirmation_code = default_token_generator.make_token(user)
-    User.objects.filter(username=username).update(
-        confirmation_code=confirmation_code
-    )
+    user.confirmation_code = confirmation_code
+    user.save()
     subject = 'Регистрация на YAMDB'
     message = f'Код подтверждения: {confirmation_code}'
     send_mail(subject, message, 'YAMDB', [email])
@@ -204,7 +201,7 @@ def get_token(request):
     username = serializer.validated_data.get('username')
     confirmation_code = serializer.validated_data.get('confirmation_code')
     user = get_object_or_404(User, username=username)
-    if confirmation_code == user.confirmation_code:
+    if default_token_generator.check_token(user, confirmation_code):
         token = AccessToken.for_user(user)
         return Response({'token': f'{token}'}, status=status.HTTP_200_OK)
     return Response({'confirmation_code': 'Неверный код подтверждения'},
