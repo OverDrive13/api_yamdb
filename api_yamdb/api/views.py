@@ -10,7 +10,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.pagination import LimitOffsetPagination
+
 
 from .permissions import (
     IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
@@ -30,12 +30,6 @@ class CategoryViewSet(ModelMixinSet):
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (filters.SearchFilter,)
-    permission_classes = (
-        IsAdminOrReadOnly,
-    )
-    lookup_field = 'slug'
-    search_fields = ('name',)
 
 
 class GenreViewSet(ModelMixinSet):
@@ -43,11 +37,6 @@ class GenreViewSet(ModelMixinSet):
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (filters.SearchFilter,)
-    permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = LimitOffsetPagination
-    lookup_field = 'slug'
-    search_fields = ('name',)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -169,7 +158,6 @@ def get_confirmation_code(request):
     except Exception:
         return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
     confirmation_code = default_token_generator.make_token(user)
-    user.confirmation_code = confirmation_code
     user.save()
     subject = 'Регистрация на YAMDB'
     message = f'Код подтверждения: {confirmation_code}'

@@ -22,12 +22,12 @@ class UserRole(models.TextChoices):
 class User(AbstractUser):
     """Юзер."""
 
-    USERNAME_VALIDATOR = UnicodeUsernameValidator()
+    username_validator = UnicodeUsernameValidator()
     bio = models.TextField(
         'Дополнительная информация о пользователе',
         blank=True,
     )
-    username = models.CharField(validators=[USERNAME_VALIDATOR,
+    username = models.CharField(validators=[username_validator,
                                 validate_username],
                                 max_length=MAX_LENGTH_NAME, unique=True)
     email = models.EmailField(unique=True)

@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 from django.core.exceptions import ValidationError
 
@@ -33,3 +34,6 @@ def validate_username_exists(username):
             'Пользователь с таким именем уже зарегистрирован'
         )
     return username
+
+
+USERNAME_VALIDATOR = UnicodeUsernameValidator()

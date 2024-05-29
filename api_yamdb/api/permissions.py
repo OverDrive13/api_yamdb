@@ -8,8 +8,8 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Определяет, имеет ли пользователь право на выполнение запроса."""
-        return (request.method in permissions.SAFE_METHODS or
-                (request.user.is_authenticated and request.user.is_admin))
+        return (request.method in permissions.SAFE_METHODS
+                or (request.user.is_authenticated and request.user.is_admin))
 
     def has_object_permission(self, request, view, obj):
         """Выполнение запроса на конкретном объекте."""
