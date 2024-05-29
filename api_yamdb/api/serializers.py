@@ -24,7 +24,7 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleResponseSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(default=None)
+    rating = serializers.IntegerField(default=0)
 
     class Meta:
         model = Title
@@ -51,17 +51,7 @@ class TitleSerializer(serializers.ModelSerializer):
         )
 
     def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['category'] = {
-            'name': instance.category.name,
-            'slug': instance.category.slug
-        }
-        ret['genre'] = [{
-            'name': instance.category.name,
-            'slug': instance.category.slug
-        }]
-        ret['rating'] = 0
-        return ret
+        return TitleResponseSerializer(instance).data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
