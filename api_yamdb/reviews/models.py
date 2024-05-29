@@ -1,10 +1,9 @@
 from django.contrib.auth.models import AbstractUser, UserManager
-from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from .constants import MAX_LENGTH_NAME
-from .validators import year_validator, validate_username
+from .validators import year_validator, validate_username, USERNAME_VALIDATOR
 
 
 class UserRole(models.TextChoices):
@@ -22,20 +21,16 @@ class UserRole(models.TextChoices):
 class User(AbstractUser):
     """Юзер."""
 
-    username_validator = UnicodeUsernameValidator()
     bio = models.TextField(
         'Дополнительная информация о пользователе',
         blank=True,
     )
-    username = models.CharField(validators=[username_validator,
+    username = models.CharField(validators=[USERNAME_VALIDATOR,
                                 validate_username],
                                 max_length=MAX_LENGTH_NAME, unique=True)
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=MAX_LENGTH_NAME, blank=True)
     last_name = models.CharField(max_length=MAX_LENGTH_NAME, blank=True)
-    confirmation_code = models.CharField(
-        max_length=MAX_LENGTH_NAME,
-        blank=True)
     role = models.CharField(
         max_length=UserRole.get_max_length(),
         choices=UserRole.choices,

@@ -4,9 +4,8 @@ from reviews.constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from reviews.models import (
     Category, Comment, Genre, Review, Title, User, UserRole
 )
-from reviews.validators import (
-    validate_username, validate_email, validate_username_exists)
-from reviews.validators import USERNAME_VALIDATOR
+from reviews.validators import validate_username, USERNAME_VALIDATOR, \
+    validate_email, validate_username_exists
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -88,7 +87,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         validators=[USERNAME_VALIDATOR,
-                    validate_username, validate_username_exists],
+                    validate_username_exists],
         max_length=MAX_LENGTH_USER)
     first_name = serializers.CharField(
         max_length=MAX_LENGTH_USER, required=False)
@@ -115,14 +114,22 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class GetTokenSerializer(serializers.Serializer):
-    username = serializers.CharField(validators=[USERNAME_VALIDATOR,
-                                                 validate_username],
-                                     required=True)
+    username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
 
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=MAX_LENGTH_NAME, required=True)
-    username = serializers.CharField(validators=[USERNAME_VALIDATOR,
-                                                 validate_username],
+    username = serializers.CharField(validators=[USERNAME_VALIDATOR],
                                      max_length=MAX_LENGTH_USER)
+
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Имя пользователя "me" не разрешено.'
+            )
+        return value
+
+    class Meta:
+        model = User
+        fields = ('username', 'email',)
