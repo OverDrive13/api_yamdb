@@ -68,13 +68,10 @@ class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username', read_only=True
     )
-    title = serializers.SlugRelatedField(
-        slug_field='id', read_only=True
-    )
 
     class Meta:
         model = Review
-        fields = ('id', 'author', 'text', 'score', 'pub_date', 'title')
+        fields = ('id', 'author', 'text', 'score', 'pub_date')
 
     def validate(self, data):
         if self.context['request']._request.method == 'POST':
