@@ -1,7 +1,5 @@
 from rest_framework import permissions
 
-from reviews.models import UserRole
-
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """Доступ к созданию и изменению объекта только у админа"""
