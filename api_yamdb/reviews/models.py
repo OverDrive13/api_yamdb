@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from .constants import MAX_LENGTH_NAME
+from .constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from .validators import year_validator, validate_username, USERNAME_VALIDATOR
 
 
@@ -27,10 +27,10 @@ class User(AbstractUser):
     )
     username = models.CharField(validators=[USERNAME_VALIDATOR,
                                 validate_username],
-                                max_length=MAX_LENGTH_NAME, unique=True)
+                                max_length=MAX_LENGTH_USER, unique=True)
     email = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=MAX_LENGTH_NAME, blank=True)
-    last_name = models.CharField(max_length=MAX_LENGTH_NAME, blank=True)
+    first_name = models.CharField(max_length=MAX_LENGTH_USER, blank=True)
+    last_name = models.CharField(max_length=MAX_LENGTH_USER, blank=True)
     role = models.CharField(
         max_length=UserRole.get_max_length(),
         choices=UserRole.choices,

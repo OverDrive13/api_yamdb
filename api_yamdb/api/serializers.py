@@ -84,37 +84,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        validators=[USERNAME_VALIDATOR],
-        max_length=MAX_LENGTH_USER)
-    first_name = serializers.CharField(
-        max_length=MAX_LENGTH_USER, required=False)
-    last_name = serializers.CharField(
-        max_length=MAX_LENGTH_USER, required=False)
-    email = serializers.EmailField(max_length=MAX_LENGTH_NAME)
-    role = serializers.ChoiceField(
-        choices=UserRole.choices,
-        default=UserRole.USER,
-        required=False
-    )
-
-    def validate_email(self, value):
-        user = self.instance
-        if user and user.email == value:
-            return value
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                'Пользователь с таким email уже зарегистрирован')
-        return value
-
-    def validate_username(self, value):
-        user = self.instance
-        if user and user.username == value:
-            return value
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError(
-                'Пользователь с таким именем уже зарегистрирован')
-        return value
 
     class Meta:
         fields = (
