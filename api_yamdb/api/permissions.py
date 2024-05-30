@@ -1,7 +1,5 @@
 from rest_framework import permissions
 
-from reviews.models import UserRole
-
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """Доступ к созданию и изменению объекта только у админа"""
@@ -11,19 +9,13 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return (request.method in permissions.SAFE_METHODS
                 or (request.user.is_authenticated and request.user.is_admin))
 
-    def has_object_permission(self, request, view, obj):
-        """Выполнение запроса на конкретном объекте."""
-        return self.has_permission(request, view)
-
 
 class IsAdmin(permissions.BasePermission):
     """Доступ ко всему только у админа"""
 
     def has_permission(self, request, view):
         """Определяет, имеет ли пользователь право на выполнение запроса."""
-        if request.user.is_authenticated:
-            is_admin = request.user.role == UserRole.ADMIN.value
-            return is_admin or request.user.is_superuser
+        return request.user.is_authenticated and request.user.is_admin
 
 
 class IsAdminModeratorAuthorOrReadOnly(permissions.IsAuthenticatedOrReadOnly):
@@ -32,6 +24,6 @@ class IsAdminModeratorAuthorOrReadOnly(permissions.IsAuthenticatedOrReadOnly):
     def has_object_permission(self, request, view, obj):
         """Выполнение запроса на конкретном объекте."""
         return (request.method in permissions.SAFE_METHODS
-                or request.user.role == UserRole.ADMIN.value
-                or request.user.role == UserRole.MODERATOR.value
+                or request.user.is_admin
+                or request.user.is_moderator
                 or obj.author == request.user)

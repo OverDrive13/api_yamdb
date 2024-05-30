@@ -10,12 +10,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.pagination import LimitOffsetPagination
+
 
 from .permissions import (
     IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
 from reviews.models import (
-    Category, Comment, Genre, Review, Title, User, UserRole)
+    Category, Comment, Genre, Review, Title, User)
 from .serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
     ReviewSerializer, TitleResponseSerializer, TitleSerializer,
@@ -30,12 +30,6 @@ class CategoryViewSet(ModelMixinSet):
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = (filters.SearchFilter,)
-    permission_classes = (
-        IsAdminOrReadOnly,
-    )
-    lookup_field = 'slug'
-    search_fields = ('name',)
 
 
 class GenreViewSet(ModelMixinSet):
@@ -43,11 +37,6 @@ class GenreViewSet(ModelMixinSet):
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    filter_backends = (filters.SearchFilter,)
-    permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = LimitOffsetPagination
-    lookup_field = 'slug'
-    search_fields = ('name',)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -117,7 +106,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('=username',)
+    search_fields = ('username',)
     pagination_class = PageNumberPagination
     permission_classes = [IsAdmin]
     lookup_field = 'username'
@@ -126,28 +115,16 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get', 'patch'], detail=False,
             permission_classes=(permissions.IsAuthenticated,))
     def me(self, request):
-        user = get_object_or_404(User, id=request.user.id)
-
-        if request.method == 'GET':
-            serializer = UserSerializer(user)
-            return Response(serializer.data, status.HTTP_200_OK)
-
         if request.method == 'PATCH':
-            fixed_data = self.request.data.copy()
-            if ('role' in self.request.data
-                    and user.role == UserRole.USER.value):
-                fixed_data['role'] = UserRole.USER.value
             serializer = UserSerializer(
-                user,
-                data=fixed_data,
-                partial=True
+                request.user, data=request.data,
+                partial=True, context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(
-                data=serializer.data,
-                status=status.HTTP_200_OK
-            )
+            serializer.save(role=request.user.role)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -155,27 +132,38 @@ class UserViewSet(viewsets.ModelViewSet):
 def signup(request):
     serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    return get_confirmation_code(request)
+    email = serializer.validated_data.get('email',)
+    username = serializer.validated_data.get('username',)
+
+    # Проверка email
+    if User.objects.filter(email=email).exists():
+        if not User.objects.filter(username=username, email=email).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    # Проверка username
+    if User.objects.filter(username=username).exists():
+        if not User.objects.filter(username=username, email=email).exists():
+            return Response(
+                {'error': 'Пользователь с таким именем уже существует.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    user, created = User.objects.get_or_create(username=username, email=email)
+
+    return get_confirmation_code(user, email)
 
 
-def get_confirmation_code(request):
+def get_confirmation_code(user, email):
     """Получить код подтверждения на указанный email"""
-    serializer = SignupSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    email = serializer.validated_data.get('email')
-    username = serializer.validated_data.get('username')
-    try:
-        user, _ = User.objects.get_or_create(username=username, email=email)
-    except Exception:
-        return Response(request.data, status=status.HTTP_400_BAD_REQUEST)
     confirmation_code = default_token_generator.make_token(user)
-    user.confirmation_code = confirmation_code
-    user.save()
     subject = 'Регистрация на YAMDB'
     message = f'Код подтверждения: {confirmation_code}'
     send_mail(subject, message, 'YAMDB', [email])
     return Response(
-        request.data,
+        {'email': email, 'username': user.username},
         status=status.HTTP_200_OK
     )
 

@@ -2,11 +2,9 @@ from rest_framework import serializers
 
 from reviews.constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from reviews.models import (
-    Category, Comment, Genre, Review, Title, User, UserRole
+    Category, Comment, Genre, Review, Title, User
 )
-from reviews.validators import (
-    validate_username, validate_email, validate_username_exists)
-from reviews.constants import USERNAME_VALIDATOR
+from reviews.validators import validate_username, USERNAME_VALIDATOR
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -24,7 +22,7 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleResponseSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(default=None)
+    rating = serializers.IntegerField(default=0)
 
     class Meta:
         model = Title
@@ -51,30 +49,17 @@ class TitleSerializer(serializers.ModelSerializer):
         )
 
     def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        ret['category'] = {
-            'name': instance.category.name,
-            'slug': instance.category.slug
-        }
-        ret['genre'] = [{
-            'name': instance.category.name,
-            'slug': instance.category.slug
-        }]
-        ret['rating'] = 0
-        return ret
+        return TitleResponseSerializer(instance).data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username', read_only=True
     )
-    title = serializers.SlugRelatedField(
-        slug_field='id', read_only=True
-    )
 
     class Meta:
         model = Review
-        fields = ('id', 'author', 'text', 'score', 'pub_date', 'title')
+        fields = ('id', 'author', 'text', 'score', 'pub_date')
 
     def validate(self, data):
         if self.context['request']._request.method == 'POST':
@@ -99,21 +84,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        validators=[USERNAME_VALIDATOR,
-                    validate_username, validate_username_exists],
-        max_length=MAX_LENGTH_USER)
-    first_name = serializers.CharField(
-        max_length=MAX_LENGTH_USER, required=False)
-    last_name = serializers.CharField(
-        max_length=MAX_LENGTH_USER, required=False)
-    email = serializers.CharField(validators=[validate_email],
-                                  max_length=MAX_LENGTH_NAME)
-    role = serializers.ChoiceField(
-        choices=UserRole.choices,
-        default=UserRole.USER,
-        required=False
-    )
 
     class Meta:
         fields = (
@@ -128,9 +98,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class GetTokenSerializer(serializers.Serializer):
-    username = serializers.CharField(validators=[USERNAME_VALIDATOR,
-                                                 validate_username],
-                                     required=True)
+    username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
 
 
@@ -139,3 +107,7 @@ class SignupSerializer(serializers.Serializer):
     username = serializers.CharField(validators=[USERNAME_VALIDATOR,
                                                  validate_username],
                                      max_length=MAX_LENGTH_USER)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email')
