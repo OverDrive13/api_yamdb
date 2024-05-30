@@ -15,7 +15,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from .permissions import (
     IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
 from reviews.models import (
-    Category, Comment, Genre, Review, Title, User, UserRole)
+    Category, Comment, Genre, Review, Title, User)
 from .serializers import (
     CategorySerializer, CommentSerializer, GenreSerializer,
     ReviewSerializer, TitleResponseSerializer, TitleSerializer,

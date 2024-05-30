@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from reviews.constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from reviews.models import (
-    Category, Comment, Genre, Review, Title, User, UserRole
+    Category, Comment, Genre, Review, Title, User
 )
 from reviews.validators import validate_username, USERNAME_VALIDATOR
 
