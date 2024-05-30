@@ -9,10 +9,6 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return (request.method in permissions.SAFE_METHODS
                 or (request.user.is_authenticated and request.user.is_admin))
 
-    def has_object_permission(self, request, view, obj):
-        """Выполнение запроса на конкретном объекте."""
-        return self.has_permission(request, view)
-
 
 class IsAdmin(permissions.BasePermission):
     """Доступ ко всему только у админа"""
