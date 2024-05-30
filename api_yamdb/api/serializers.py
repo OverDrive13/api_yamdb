@@ -4,7 +4,7 @@ from reviews.constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from reviews.models import (
     Category, Comment, Genre, Review, Title, User
 )
-from reviews.validators import validate_username, USERNAME_VALIDATOR
+from reviews.validators import validate_username, username_validator
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -98,16 +98,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class GetTokenSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
+    username = serializers.CharField(validators=[username_validator,
+                                                 validate_username],
+                                     required=True)
     confirmation_code = serializers.CharField(required=True)
 
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=MAX_LENGTH_NAME, required=True)
-    username = serializers.CharField(validators=[USERNAME_VALIDATOR,
+    username = serializers.CharField(validators=[username_validator,
                                                  validate_username],
                                      max_length=MAX_LENGTH_USER)
-
-    class Meta:
-        model = User
-        fields = ('username', 'email')

@@ -18,4 +18,4 @@ def validate_username(username):
         )
 
 
-USERNAME_VALIDATOR = UnicodeUsernameValidator()
+username_validator = UnicodeUsernameValidator()

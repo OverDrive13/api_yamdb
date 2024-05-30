@@ -3,8 +3,7 @@ from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from .constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
-from .validators import year_validator, validate_username, USERNAME_VALIDATOR
-
+from .validators import year_validator, validate_username, username_validator
 
 class UserRole(models.TextChoices):
     """Роли Юзера."""
@@ -25,7 +24,7 @@ class User(AbstractUser):
         'Дополнительная информация о пользователе',
         blank=True,
     )
-    username = models.CharField(validators=[USERNAME_VALIDATOR,
+    username = models.CharField(validators=[username_validator,
                                 validate_username],
                                 max_length=MAX_LENGTH_USER, unique=True)
     email = models.EmailField(unique=True)
