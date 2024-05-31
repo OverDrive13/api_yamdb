@@ -125,7 +125,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
 
 
 @api_view(['POST'])
@@ -135,14 +134,12 @@ def signup(request):
     serializer.is_valid(raise_exception=True)
     email = serializer.validated_data.get('email',)
     username = serializer.validated_data.get('username',)
-
     if User.objects.filter(email=email).exists():
         if not User.objects.filter(username=username, email=email).exists():
             return Response(
                 {'email': 'Пользователь с таким email уже существует.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
     if User.objects.filter(username=username).exists():
         if not User.objects.filter(username=username, email=email).exists():
             return Response(
@@ -150,12 +147,6 @@ def signup(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
     user, created = User.objects.get_or_create(username=username, email=email)
-    return send_and_get_confirmation_code(user, email)
-    
-
-
-def send_and_get_confirmation_code(user, email):
-    """Получить код подтверждения на указанный email"""
     confirmation_code = default_token_generator.make_token(user)
     subject = 'Регистрация на YAMDB'
     message = f'Код подтверждения: {confirmation_code}'
