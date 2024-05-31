@@ -146,7 +146,7 @@ def signup(request):
                 {'error': 'Пользователь с таким именем уже существует.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    user, created = User.objects.get_or_create(username=username, email=email)
+    user, _ = User.objects.get_or_create(username=username, email=email)
     confirmation_code = default_token_generator.make_token(user)
     subject = 'Регистрация на YAMDB'
     message = f'Код подтверждения: {confirmation_code}'
