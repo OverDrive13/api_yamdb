@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from .constants import MAX_LENGTH_NAME, MAX_LENGTH_USER
 from .validators import year_validator, validate_username, username_validator
 
+
 class UserRole(models.TextChoices):
     """Роли Юзера."""
 
